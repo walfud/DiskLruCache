@@ -159,6 +159,8 @@ public final class DiskLruCache implements Closeable {
    */
   private long nextSequenceNumber = 0;
 
+  private OnEventListener mOnEventListener;
+
   /** This cache uses a single background thread to evict entries. */
   final ThreadPoolExecutor executorService =
       new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
@@ -553,6 +555,9 @@ public final class DiskLruCache implements Closeable {
     if (entry.readable | success) {
       entry.readable = true;
       journalWriter.write(CLEAN + ' ' + entry.key + entry.getLengths() + '\n');
+      if (mOnEventListener != null) {
+        mOnEventListener.onAddCache(entry.key);
+      }
       if (success) {
         entry.sequenceNumber = nextSequenceNumber++;
       }
@@ -602,6 +607,9 @@ public final class DiskLruCache implements Closeable {
 
     redundantOpCount++;
     journalWriter.append(REMOVE + ' ' + key + '\n');
+    if (mOnEventListener != null) {
+      mOnEventListener.onRemoveCache(key);
+    }
     lruEntries.remove(key);
 
     if (journalRebuildRequired()) {
@@ -671,6 +679,10 @@ public final class DiskLruCache implements Closeable {
 
   private static String inputStreamToString(InputStream in) throws IOException {
     return Util.readFully(new InputStreamReader(in, Util.UTF_8));
+  }
+
+  public void setOnEventListener(OnEventListener onEventListener) {
+    mOnEventListener = onEventListener;
   }
 
   /** A snapshot of the values for an entry. */
@@ -939,5 +951,13 @@ public final class DiskLruCache implements Closeable {
     public File getDirtyFile(int i) {
       return new File(directory, key + "." + i + ".tmp");
     }
+  }
+
+  public interface OnEventListener {
+//    boolean onPreAddCache(String key);
+    void onAddCache(String key);
+
+//    boolean onPreRemoveCache(String key);
+    void onRemoveCache(String key);
   }
 }

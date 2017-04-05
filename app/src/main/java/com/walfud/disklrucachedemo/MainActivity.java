@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,6 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends Activity {
+
+    public static final String TAG = "DiskLruCacheDemo";
 
     private RecyclerView mRv;
     private List<Bitmap> mDataList;
@@ -40,7 +43,6 @@ public class MainActivity extends Activity {
             public void onBindViewHolder(ViewHolder holder, int position) {
                 Bitmap bitmap = mDataList.get(position);
                 holder.iv.setImageBitmap(bitmap);
-                holder.keyTv.setText(String.format("%dKB", bitmap.getByteCount() / 1024));
 
                 try {
                     DiskLruCache.Editor editor = mCache.edit(String.valueOf(position));
@@ -48,6 +50,8 @@ public class MainActivity extends Activity {
                     bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
                     outputStream.close();
                     editor.commit();
+
+                    holder.keyTv.setText(String.format("%dKB", mCache.get(String.valueOf(position)).getLength(0) / 1024));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -72,7 +76,18 @@ public class MainActivity extends Activity {
 
         //
         try {
-            mCache = DiskLruCache.open(getExternalCacheDir(), BuildConfig.VERSION_CODE, 1, 1L * 1024 * 1024);
+            mCache = DiskLruCache.open(getExternalCacheDir(), BuildConfig.VERSION_CODE, 1, 1L * 1024 * 1024);   // Cache about 23 pictures
+            mCache.setOnEventListener(new DiskLruCache.OnEventListener() {
+                @Override
+                public void onAddCache(String key) {
+                    Log.i(TAG, "onAddCache: " + key);
+                }
+
+                @Override
+                public void onRemoveCache(String key) {
+                    Log.i(TAG, "onRemoveCache: " + key);
+                }
+            });
         } catch (Exception e) {
             e.printStackTrace();
         }
