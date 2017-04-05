@@ -12,6 +12,9 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.walfud.disklrucache.DiskLruCache;
+
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,6 +22,7 @@ public class MainActivity extends Activity {
 
     private RecyclerView mRv;
     private List<Bitmap> mDataList;
+    private DiskLruCache mCache;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,6 +41,16 @@ public class MainActivity extends Activity {
                 Bitmap bitmap = mDataList.get(position);
                 holder.iv.setImageBitmap(bitmap);
                 holder.keyTv.setText(String.format("%dKB", bitmap.getByteCount() / 1024));
+
+                try {
+                    DiskLruCache.Editor editor = mCache.edit(String.valueOf(position));
+                    OutputStream outputStream = editor.newOutputStream(0);
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream);
+                    outputStream.close();
+                    editor.commit();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
 
             @Override
@@ -52,6 +66,13 @@ public class MainActivity extends Activity {
                 mDataList.add(BitmapFactory.decodeStream(getResources().getAssets().open(String.format("%d.jpg", i))));
             }
             mRv.getAdapter().notifyDataSetChanged();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        //
+        try {
+            mCache = DiskLruCache.open(getExternalCacheDir(), BuildConfig.VERSION_CODE, 1, 1L * 1024 * 1024);
         } catch (Exception e) {
             e.printStackTrace();
         }
