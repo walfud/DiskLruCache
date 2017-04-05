@@ -1,14 +1,15 @@
 apply plugin: 'com.android.application'
+apply from: '../config.properties'
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion "25.0.2"
+    compileSdkVersion config.compileSdkVersion
+    buildToolsVersion config.buildToolsVersion
     defaultConfig {
         applicationId "com.walfud.disklrucache"
-        minSdkVersion 23
-        targetSdkVersion 25
-        versionCode 1
-        versionName "1.0"
+        minSdkVersion config.minSdkVersion
+        targetSdkVersion config.targetSdkVersion
+        versionCode config.majorVersion * 100 + config.minorVersion * 10 + config.patchVersion
+        versionName config.majorVersion + "." + config.minorVersion + "." + config.patchVersion
     }
     buildTypes {
         release {
